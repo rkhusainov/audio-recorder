@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.net.Uri;
@@ -15,6 +16,7 @@ import android.os.Environment;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -51,6 +53,7 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     private RecordAdapter mRecordAdapter;
     private Button mRecordButton;
     private Button mPlayButton;
+    private TextView mCurrentRecordTextView;
     private List<File> mRecords = new ArrayList<>();
 
     private MediaRecorder mRecorder;
@@ -63,7 +66,7 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     /**
      * Проверяем разрешения
      *
-     * @param context     - context приложения
+     * @param context     - context activity
      * @param permissions - массив разрешений
      */
     public static boolean hasPermissions(Context context, String... permissions) {
@@ -140,6 +143,7 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
         mRecordRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         mRecordAdapter = new RecordAdapter(mRecords, this);
         mRecordRecyclerView.setAdapter(mRecordAdapter);
+        mCurrentRecordTextView = findViewById(R.id.current_record);
 
         mRecordButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -291,6 +295,7 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
         if (!mRecords.isEmpty()) {
             if (mFile == null) {
                 mFile = mRecords.get(0);
+                setCurrentRecordName();
             }
             createPlayer();
         } else {
@@ -299,12 +304,27 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     }
 
     private void createPlayer() {
+        if (mMediaPlayer != null) {
+            mMediaPlayer.reset();
+        }
         mMediaPlayer = MediaPlayer.create(this, Uri.parse(Environment.getExternalStorageDirectory()
                 + File.separator
                 + RECORDS_FOLDER_NAME
                 + File.separator
                 + mFile.getName()));
         mMediaPlayer.start();
+
+        mCurrentRecordTextView.setText(format(R.string.playing_record, mFile.getName()));
+        mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mediaPlayer) {
+                mCurrentRecordTextView.setText(getResources().getString(R.string.play_finish));
+            }
+        });
+    }
+
+    private String format(int res, String text) {
+        return String.format((getString(res)), text);
     }
 
     private List<File> getRecordNames(File dir) {
@@ -324,5 +344,12 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     @Override
     public void onClick(File file) {
         mFile = file;
+        setCurrentRecordName();
+    }
+
+    private void setCurrentRecordName() {
+        if (mFile != null) {
+            mCurrentRecordTextView.setText(mFile.getName());
+        }
     }
 }

@@ -22,18 +22,33 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_weight="0"
-        android:orientation="vertical">
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/current_record"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+            tools:text="Record_1" />
 
         <Button
             android:id="@+id/btn_play"
+            style="@style/RoundedCornerButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="@drawable/button_back"
+            android:padding="8dp"
             android:text="@string/play" />
 
         <Button
             android:id="@+id/btn_record"
+            style="@style/RoundedCornerButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="@drawable/button_back"
+            android:padding="8dp"
             android:text="@string/record" />
 
     </LinearLayout>

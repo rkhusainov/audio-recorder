@@ -3,4 +3,8 @@
     <string name="record">Record</string>
     <string name="play">play</string>
     <string name="no_records">Записей нет</string>
+    <string name="stop">stop</string>
+    <string name="pause">pause</string>
+    <string name="playing_record">Воспроизведение: %s</string>
+    <string name="play_finish">Воспроизведение завершено</string>
 </resources>

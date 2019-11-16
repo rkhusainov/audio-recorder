@@ -47,17 +47,23 @@
 
         <Button
             android:id="@+id/btn_stop"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:padding="16dp"
-            android:background="@drawable/ic_stop" />
+            style="@style/RoundedCornerButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/button_back"
+            android:drawableStart="@drawable/ic_stop"
+            android:padding="8dp"
+            android:text="@string/stop" />
 
         <Button
             android:id="@+id/btn_pause"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:padding="16dp"
-            android:background="@drawable/ic_pause" />
+            style="@style/RoundedCornerButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/button_back"
+            android:drawableStart="@drawable/ic_pause"
+            android:padding="8dp"
+            android:text="@string/pause" />
 
     </LinearLayout>
 
