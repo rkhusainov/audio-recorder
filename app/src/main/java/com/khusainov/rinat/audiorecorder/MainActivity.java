@@ -6,7 +6,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.media.MediaPlayer;
 import android.media.MediaRecorder;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -21,17 +23,15 @@ import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.khusainov.rinat.audiorecorder.model.Record;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements OnItemClickListener {
 
     public static final String RECORDS_FOLDER_NAME = "MyAudioRecords";
+    public static final String RECORD_NAME_PREFIX = "Record_";
     public static final String RECORD_FORMAT = ".3gp";
     private static final int REQUEST_CODE = 1;
     public static final String STOP_RECORD = "STOP_RECORD";
@@ -50,10 +50,15 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView mRecordRecyclerView;
     private RecordAdapter mRecordAdapter;
     private Button mRecordButton;
-    private List<Record> mRecords = new ArrayList<>();
+    private Button mPlayButton;
+    private List<File> mRecords = new ArrayList<>();
 
     private MediaRecorder mRecorder;
     private String mFileName;
+    private File mDir;
+    private File mFile;
+
+    private MediaPlayer mMediaPlayer;
 
     /**
      * Проверяем разрешения
@@ -100,13 +105,12 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(MainActivity.this, RecordService.class);
             startService(intent);
             startRecord();
-            Log.d(TAG, "onRequestPermissionsResult: REQUEST");
+            Log.d(TAG, "onRequestPermissionsResult: ALLOW");
         } else {
-            Log.d(TAG, "onRequestPermissionsResult: REQUEST_NO");
+            Log.d(TAG, "onRequestPermissionsResult: DENY");
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -114,27 +118,43 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         createFolder();
+        mDir = new File(Environment.getExternalStorageDirectory()
+                + File.separator
+                + RECORDS_FOLDER_NAME
+                + File.separator);
+        mRecords = getRecordNames(mDir);
 
         initViews();
         initBroadCastReceiver();
     }
 
+    private void updateRecords() {
+        mRecords = getRecordNames(mDir);
+        mRecordAdapter.addData(mRecords);
+    }
+
     private void initViews() {
         mRecordButton = findViewById(R.id.btn_record);
+        mPlayButton = findViewById(R.id.btn_play);
         mRecordRecyclerView = findViewById(R.id.record_recycler);
         mRecordRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        mRecordAdapter = new RecordAdapter(mRecords);
+        mRecordAdapter = new RecordAdapter(mRecords, this);
         mRecordRecyclerView.setAdapter(mRecordAdapter);
 
         mRecordButton.setOnClickListener(new View.OnClickListener() {
-
             @Override
             public void onClick(View view) {
                 startRecordingService();
             }
         });
-    }
 
+        mPlayButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                playRecord();
+            }
+        });
+    }
 
     /**
      * Обрабатываем полученные сообщения
@@ -146,6 +166,7 @@ public class MainActivity extends AppCompatActivity {
             public void onReceive(Context context, Intent intent) {
                 if (intent.getAction().equals(STOP_RECORD)) {
                     stopRecord();
+                    updateRecords();
                     Toast.makeText(context, "STOP", Toast.LENGTH_SHORT).show();
                     Log.d(TAG, "onReceive: STOP");
                 } else if (intent.getAction().equals(PAUSE_RECORD)) {
@@ -200,7 +221,7 @@ public class MainActivity extends AppCompatActivity {
                 + File.separator
                 + RECORDS_FOLDER_NAME
                 + File.separator
-                + Calendar.getInstance().getTime()
+                + RECORD_NAME_PREFIX + mRecords.size()
                 + RECORD_FORMAT;
     }
 
@@ -241,7 +262,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
     /**
      * Ставим запись на паузу
      */
@@ -264,9 +284,45 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Проигрываем запись
+     */
+    private void playRecord() {
+        if (!mRecords.isEmpty()) {
+            if (mFile == null) {
+                mFile = mRecords.get(0);
+            }
+            createPlayer();
+        } else {
+            Toast.makeText(this, getResources().getString(R.string.no_records), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void createPlayer() {
+        mMediaPlayer = MediaPlayer.create(this, Uri.parse(Environment.getExternalStorageDirectory()
+                + File.separator
+                + RECORDS_FOLDER_NAME
+                + File.separator
+                + mFile.getName()));
+        mMediaPlayer.start();
+    }
+
+    private List<File> getRecordNames(File dir) {
+        List<File> files = new ArrayList<>();
+        for (File file : dir.listFiles()) {
+            files.add(file);
+        }
+        return files;
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
         unregisterReceiver(mBroadcastReceiver);
+    }
+
+    @Override
+    public void onClick(File file) {
+        mFile = file;
     }
 }

@@ -10,7 +10,6 @@ import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 import android.widget.RemoteViews;
-import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -24,7 +23,7 @@ public class RecordService extends Service {
     private static final String PAUSE_ACTION = "PAUSE_ACTION";
     private static final String TAG = RecordService.class.getSimpleName();
 
-    private boolean isPaused=false;
+    private boolean isPaused = false;
 
     @Override
     public void onCreate() {

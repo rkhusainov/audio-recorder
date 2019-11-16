@@ -8,16 +8,23 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.khusainov.rinat.audiorecorder.model.Record;
-
+import java.io.File;
 import java.util.List;
 
 public class RecordAdapter extends RecyclerView.Adapter<RecordAdapter.RecorderHodler> {
 
-    private List<Record> mRecords;
+    private List<File> mRecords;
+    private OnItemClickListener mOnItemClickListener;
 
-    public RecordAdapter(List<Record> records) {
+    public RecordAdapter(List<File> records, OnItemClickListener onItemClickListener) {
         mRecords = records;
+        mOnItemClickListener = onItemClickListener;
+    }
+
+    public void addData(List<File> files) {
+        mRecords.clear();
+        mRecords.addAll(files);
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -29,7 +36,7 @@ public class RecordAdapter extends RecyclerView.Adapter<RecordAdapter.RecorderHo
 
     @Override
     public void onBindViewHolder(@NonNull RecorderHodler holder, int position) {
-        Record record = mRecords.get(position);
+        File record = mRecords.get(position);
         holder.bind(record);
     }
 
@@ -38,23 +45,24 @@ public class RecordAdapter extends RecyclerView.Adapter<RecordAdapter.RecorderHo
         return mRecords.size();
     }
 
-    static class RecorderHodler extends RecyclerView.ViewHolder {
+    class RecorderHodler extends RecyclerView.ViewHolder {
 
         private TextView mNameTextView;
-        private TextView mLengthTextView;
-        private TextView mDateTextView;
 
         public RecorderHodler(@NonNull View itemView) {
             super(itemView);
             mNameTextView = itemView.findViewById(R.id.tv_name);
-            mLengthTextView = itemView.findViewById(R.id.tv_length);
-            mDateTextView = itemView.findViewById(R.id.tv_date);
         }
 
-        void bind(Record record) {
-            mNameTextView.setText(record.getName());
-            mLengthTextView.setText(String.valueOf(record.getLength()));
-            mDateTextView.setText(record.getDate().toString());
+        void bind(final File file) {
+            mNameTextView.setText(file.getName());
+
+            itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    mOnItemClickListener.onClick(file);
+                }
+            });
         }
     }
 }
