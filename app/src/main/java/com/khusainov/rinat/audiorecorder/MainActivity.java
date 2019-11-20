@@ -88,6 +88,7 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
         if (!hasPermissions(this, PERMISSIONS)) {
             ActivityCompat.requestPermissions(MainActivity.this, PERMISSIONS, REQUEST_CODE);
         } else {
+            createFolder();
             Intent intent = new Intent(MainActivity.this, RecordService.class);
             startService(intent);
             startRecord();
@@ -106,8 +107,10 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (requestCode == REQUEST_CODE && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             Intent intent = new Intent(MainActivity.this, RecordService.class);
+            createFolder();
             startService(intent);
             startRecord();
+
             Log.d(TAG, "onRequestPermissionsResult: ALLOW");
         } else {
             Log.d(TAG, "onRequestPermissionsResult: DENY");
@@ -119,13 +122,7 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        createFolder();
-        mDir = new File(Environment.getExternalStorageDirectory()
-                + File.separator
-                + RECORDS_FOLDER_NAME
-                + File.separator);
-        mRecords = getRecordNames(mDir);
+        getRecordsFromDir();
 
         initViews();
         initBroadCastReceiver();
@@ -206,12 +203,23 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
         registerReceiver(mBroadcastReceiver, resumeFilter);
     }
 
+    private void getRecordsFromDir() {
+        mDir = new File(Environment.getExternalStorageDirectory()
+                + File.separator
+                + RECORDS_FOLDER_NAME
+                + File.separator);
+        if (mDir.exists()) {
+        mRecords = getRecordNames(mDir);
+        }
+    }
+
     /**
      * Создаем директорию для наших записей
      */
     private void createFolder() {
-        File folder = new File(Environment.getExternalStorageDirectory() +
-                File.separator + RECORDS_FOLDER_NAME);
+        File folder = new File(Environment.getExternalStorageDirectory()
+                + File.separator
+                + RECORDS_FOLDER_NAME);
         if (!folder.exists()) {
             folder.mkdir();
         }
