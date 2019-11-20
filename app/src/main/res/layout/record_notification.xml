@@ -3,7 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="wrap_content"
+    android:background="@color/colorGray">
 
     <LinearLayout
         android:id="@+id/record_info_layout"
@@ -25,7 +26,8 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="16dp"
             android:textAppearance="@style/TextAppearance.Compat.Notification.Title"
-            tools:text="Record 1" />
+            tools:text="Record 1"
+            android:textColor="@color/colorWhite"/>
 
         <TextView
             android:id="@+id/tv_timer"
@@ -45,25 +47,21 @@
         android:layout_marginEnd="8dp"
         android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/btn_stop"
-            style="@style/RoundedCornerButton"
+        <ImageView
+            android:id="@+id/iv_stop"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/button_back"
-            android:drawableStart="@drawable/ic_stop"
             android:padding="8dp"
-            android:text="@string/stop" />
+            android:src="@drawable/ic_stop"
+            android:background="@drawable/button_back"/>
 
-        <Button
-            android:id="@+id/btn_pause"
-            style="@style/RoundedCornerButton"
+        <ImageView
+            android:id="@+id/iv_pause"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/button_back"
-            android:drawableStart="@drawable/ic_pause"
             android:padding="8dp"
-            android:text="@string/pause" />
+            android:src="@drawable/ic_pause"
+            android:background="@drawable/button_back"/>
 
     </LinearLayout>
 

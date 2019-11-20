@@ -1,18 +1,16 @@
 package com.khusainov.rinat.audiorecorder;
 
 import android.Manifest;
-import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
-import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
-import android.media.MediaRecorder;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -26,15 +24,12 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements OnItemClickListener {
+public class MainActivity extends AppCompatActivity implements OnItemClickListener, NotificationActionListener {
 
     public static final String RECORDS_FOLDER_NAME = "MyAudioRecords";
-    public static final String RECORD_NAME_PREFIX = "Record_";
-    public static final String RECORD_FORMAT = ".3gp";
     private static final int REQUEST_CODE = 1;
     public static final String STOP_RECORD = "STOP_RECORD";
     public static final String PAUSE_RECORD = "PAUSE_RECORD";
@@ -47,8 +42,6 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
             Manifest.permission.RECORD_AUDIO
     };
 
-    private BroadcastReceiver mBroadcastReceiver;
-
     private RecyclerView mRecordRecyclerView;
     private RecordAdapter mRecordAdapter;
     private Button mRecordButton;
@@ -56,67 +49,13 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     private TextView mCurrentRecordTextView;
     private List<File> mRecords = new ArrayList<>();
 
-    private MediaRecorder mRecorder;
-    private String mFileName;
     private File mDir;
     private File mFile;
 
     private MediaPlayer mMediaPlayer;
 
-    /**
-     * Проверяем разрешения
-     *
-     * @param context     - context activity
-     * @param permissions - массив разрешений
-     */
-    public static boolean hasPermissions(Context context, String... permissions) {
-        if (context != null && permissions != null) {
-            for (String permission : permissions) {
-                if (ActivityCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Если нет разрешений, запрашиваем
-     * Если есть, запускаем сервис и запись
-     */
-    private void startRecordingService() {
-        if (!hasPermissions(this, PERMISSIONS)) {
-            ActivityCompat.requestPermissions(MainActivity.this, PERMISSIONS, REQUEST_CODE);
-        } else {
-            createFolder();
-            Intent intent = new Intent(MainActivity.this, RecordService.class);
-            startService(intent);
-            startRecord();
-        }
-    }
-
-    /**
-     * Здесь получим решение пользователя на запрос разрешений
-     * Данный метод запустится после получения решения пользователя на запрос разрешений
-     *
-     * @param requestCode  - код запроса, проверяем, что requestСode тот же, что мы указывали в requestPermissions
-     * @param permissions  - в массиве permissions придут названия разрешений, которые мы запрашивали
-     * @param grantResults - в массиве grantResults придут ответы пользователя на запросы разрешений
-     */
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode == REQUEST_CODE && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            Intent intent = new Intent(MainActivity.this, RecordService.class);
-            createFolder();
-            startService(intent);
-            startRecord();
-
-            Log.d(TAG, "onRequestPermissionsResult: ALLOW");
-        } else {
-            Log.d(TAG, "onRequestPermissionsResult: DENY");
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        }
-    }
+    private RecordService mRecordService;
+    private boolean mBound = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -125,12 +64,6 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
         getRecordsFromDir();
 
         initViews();
-        initBroadCastReceiver();
-    }
-
-    private void updateRecords() {
-        mRecords = getRecordNames(mDir);
-        mRecordAdapter.addData(mRecords);
     }
 
     private void initViews() {
@@ -157,50 +90,105 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
         });
     }
 
-    /**
-     * Обрабатываем полученные сообщения
-     */
-    private void initBroadCastReceiver() {
-
-        mBroadcastReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                if (intent.getAction().equals(STOP_RECORD)) {
-                    stopRecord();
-                    updateRecords();
-                    Toast.makeText(context, "STOP", Toast.LENGTH_SHORT).show();
-                    Log.d(TAG, "onReceive: STOP");
-                } else if (intent.getAction().equals(PAUSE_RECORD)) {
-                    pauseRecord();
-                    Toast.makeText(context, "PAUSE", Toast.LENGTH_SHORT).show();
-                    Log.d(TAG, "onReceive: PAUSE");
-                } else if (intent.getAction().equals(RESUME_RECORD)) {
-                    resumeRecord();
-                    Toast.makeText(context, "RESUME", Toast.LENGTH_SHORT).show();
-                    Log.d(TAG, "onReceive: RESUME");
-                }
-            }
-        };
-    }
-
     @Override
     protected void onStart() {
         super.onStart();
-        setupReceiver();
+        Intent intent = new Intent(this, RecordService.class);
+        startService(intent);
+        bindService(intent, mRecorderConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (mBound) {
+            unbindService(mRecorderConnection);
+            mBound = false;
+        }
     }
 
     /**
-     * Создаем IntentFilter
+     * Проверяем разрешения
+     *
+     * @param context     - context activity
+     * @param permissions - массив разрешений
      */
-    private void setupReceiver() {
-        IntentFilter stopFilter = new IntentFilter(STOP_RECORD);
-        registerReceiver(mBroadcastReceiver, stopFilter);
+    public static boolean hasPermissions(Context context, String... permissions) {
+        if (context != null && permissions != null) {
+            for (String permission : permissions) {
+                if (ActivityCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 
-        IntentFilter pauseFilter = new IntentFilter(PAUSE_RECORD);
-        registerReceiver(mBroadcastReceiver, pauseFilter);
+    /**
+     * Если нет разрешений, запрашиваем
+     * Если есть, запускаем сервис и запись
+     */
+    private void startRecordingService() {
+        if (!hasPermissions(this, PERMISSIONS)) {
+            ActivityCompat.requestPermissions(MainActivity.this, PERMISSIONS, REQUEST_CODE);
+        } else {
+            mRecordService.setNotificationActionListener(this);
+            createFolder();
+            startRecord();
+        }
+    }
 
-        IntentFilter resumeFilter = new IntentFilter(RESUME_RECORD);
-        registerReceiver(mBroadcastReceiver, resumeFilter);
+    /**
+     * Здесь получим решение пользователя на запрос разрешений
+     * Данный метод запустится после получения решения пользователя на запрос разрешений
+     *
+     * @param requestCode  - код запроса, проверяем, что requestСode тот же, что мы указывали в requestPermissions
+     * @param permissions  - в массиве permissions придут названия разрешений, которые мы запрашивали
+     * @param grantResults - в массиве grantResults придут ответы пользователя на запросы разрешений
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (requestCode == REQUEST_CODE && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            createFolder();
+        } else {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }
+
+    private ServiceConnection mRecorderConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+
+            RecordService.LocalBinder binder = (RecordService.LocalBinder) service;
+            mRecordService = binder.getRecorderService();
+//            mRecordService = ((RecordService.LocalBinder) service).getRecorderService();
+            mBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mBound = false;
+        }
+    };
+
+    @Override
+    public void startRecord() {
+        mRecordService.startRecord();
+    }
+
+    @Override
+    public void pauseRecord() {
+        mRecordService.pauseRecord();
+    }
+
+    @Override
+    public void resumeRecord() {
+        mRecordService.resumeRecord();
+    }
+
+    @Override
+    public void stopRecord() {
+        mRecordService.stopRecord();
     }
 
     private void getRecordsFromDir() {
@@ -209,7 +197,7 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
                 + RECORDS_FOLDER_NAME
                 + File.separator);
         if (mDir.exists()) {
-        mRecords = getRecordNames(mDir);
+            mRecords = getRecordNames(mDir);
         }
     }
 
@@ -222,77 +210,6 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
                 + RECORDS_FOLDER_NAME);
         if (!folder.exists()) {
             folder.mkdir();
-        }
-    }
-
-    /**
-     * Создаем путь для нового файла
-     */
-    private void createFilePath() {
-        mFileName = Environment.getExternalStorageDirectory()
-                + File.separator
-                + RECORDS_FOLDER_NAME
-                + File.separator
-                + RECORD_NAME_PREFIX + mRecords.size()
-                + RECORD_FORMAT;
-    }
-
-    /**
-     * Начинаем запись
-     */
-    private void startRecord() {
-
-        createFilePath();
-
-        try {
-            File outFile = new File(mFileName);
-            if (outFile.exists()) {
-                outFile.delete();
-            }
-
-            mRecorder = new MediaRecorder();
-            mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-            mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-            mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-            mRecorder.setOutputFile(mFileName);
-            mRecorder.prepare();
-            mRecorder.start();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Останавливаем запись
-     */
-    private void stopRecord() {
-        if (mRecorder != null) {
-            mRecorder.stop();
-            mRecorder.reset();
-            mRecorder.release();
-            mRecorder = null;
-        }
-    }
-
-    /**
-     * Ставим запись на паузу
-     */
-    private void pauseRecord() {
-        if (mRecorder != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                mRecorder.pause();
-            }
-        }
-    }
-
-    /**
-     * Возобновляем запись
-     */
-    private void resumeRecord() {
-        if (mRecorder != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                mRecorder.resume();
-            }
         }
     }
 
@@ -343,10 +260,9 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
         return files;
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        unregisterReceiver(mBroadcastReceiver);
+    private void updateRecords() {
+        mRecords = getRecordNames(mDir);
+        mRecordAdapter.addData(mRecords);
     }
 
     @Override
@@ -359,5 +275,10 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
         if (mFile != null) {
             mCurrentRecordTextView.setText(mFile.getName());
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
     }
 }
