@@ -74,9 +74,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mRecords = RecordsProvider.getInstance().getRecords();
-
         initViews();
+
+        // Проверяем разрешения при открытии приложения, нужно для чтения записей
+        if (!hasPermissions(this, PERMISSIONS)) {
+            ActivityCompat.requestPermissions(MainActivity.this, PERMISSIONS, REQUEST_CODE);
+        } else {
+            createFolder();
+            updateRecords();
+        }
     }
 
     private void initViews() {
@@ -95,14 +101,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mRecordRecyclerView.setAdapter(mRecordAdapter);
         SimpleDividerItemDecoration dividerItemDecoration = new SimpleDividerItemDecoration(this, getResources().getColor(R.color.colorGray), 1);
         mRecordRecyclerView.addItemDecoration(dividerItemDecoration);
-
-        // Проверяем разрешения при открытии приложения, нужно для чтения записей
-        if (!hasPermissions(this, PERMISSIONS)) {
-            ActivityCompat.requestPermissions(MainActivity.this, PERMISSIONS, REQUEST_CODE);
-        } else {
-            createFolder();
-            updateRecords();
-        }
     }
 
     @Override
@@ -382,7 +380,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * Отправляем message сервису "PlayerService"
      */
     private void sendMessageToPlayerService(int position) {
-        if (mBoundPlayer) {
+        if (mBoundPlayer && !mRecords.isEmpty()) {
             Message message = Message.obtain(null, PLAY_RECORD, position, 0);
             message.replyTo = mMainActivityMessenger;
             setPlayerState(true);
