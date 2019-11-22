@@ -13,13 +13,13 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -30,7 +30,7 @@ import java.util.List;
 import static com.khusainov.rinat.audiorecorder.PlayerService.MESSAGE_START;
 import static com.khusainov.rinat.audiorecorder.PlayerService.PLAY_RECORD;
 
-public class MainActivity extends AppCompatActivity implements OnItemClickListener, NotificationActionListener {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, OnItemClickListener, NotificationActionListener {
 
     private static String[] PERMISSIONS = {
             Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -48,10 +48,13 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     public static final int MESSAGE_RESUME = 4;
     public static final int MESSAGE_STOP = 5;
 
-    private RecyclerView mRecordRecyclerView;
-    private RecordAdapter mRecordAdapter;
     private ImageView mRecordButton;
     private ImageView mPlayButton;
+    private ImageView mPlayPrevButton;
+    private ImageView mPlayNextButton;
+
+    private RecyclerView mRecordRecyclerView;
+    private RecordAdapter mRecordAdapter;
     private List<File> mRecords = new ArrayList<>();
 
     private RecordService mRecordService;
@@ -62,6 +65,9 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     private Messenger mMainActivityMessenger = new Messenger(new PlayerIncomingHandlerMainActivity());
 
     private int mCurrentPosition;
+    private boolean isPlaying = false;
+    private boolean isRecording = false;
+    private boolean isRecordWasPaused = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,29 +80,21 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     }
 
     private void initViews() {
-        mRecordButton = findViewById(R.id.btn_record);
+        mRecordButton = findViewById(R.id.iv_record);
         mPlayButton = findViewById(R.id.iv_play);
+        mPlayPrevButton = findViewById(R.id.iv_prev);
+        mPlayNextButton = findViewById(R.id.iv_next);
+        mRecordButton.setOnClickListener(this);
+        mPlayButton.setOnClickListener(this);
+        mPlayPrevButton.setOnClickListener(this);
+        mPlayNextButton.setOnClickListener(this);
+
         mRecordRecyclerView = findViewById(R.id.record_recycler);
         mRecordRecyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.VERTICAL, false));
-        SimpleDividerItemDecoration dividerItemDecoration = new SimpleDividerItemDecoration(this, getResources().getColor(R.color.colorGray), 1);
-        mRecordRecyclerView.addItemDecoration(dividerItemDecoration);
-
         mRecordAdapter = new RecordAdapter(mRecords, this);
         mRecordRecyclerView.setAdapter(mRecordAdapter);
-
-        mRecordButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                startRecordingService();
-            }
-        });
-
-        mPlayButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
-            }
-        });
+        SimpleDividerItemDecoration dividerItemDecoration = new SimpleDividerItemDecoration(this, getResources().getColor(R.color.colorGray), 1);
+        mRecordRecyclerView.addItemDecoration(dividerItemDecoration);
 
         // Проверяем разрешения при открытии приложения, нужно для чтения записей
         if (!hasPermissions(this, PERMISSIONS)) {
@@ -104,6 +102,36 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
         } else {
             createFolder();
             updateRecords();
+        }
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.iv_record:
+                if (!isRecording) {
+                    if (!isRecordWasPaused) {
+                        startRecordingService();
+                    } else {
+                        resumeRecord();
+                    }
+                } else {
+                    pauseRecord();
+                }
+                break;
+            case R.id.iv_play:
+                if (isPlaying) {
+                    pausePlay();
+                } else {
+                    sendMessageToPlayerService(mCurrentPosition);
+                }
+                break;
+            case R.id.iv_prev:
+                prevPlay();
+                break;
+            case R.id.iv_next:
+                nextPlay();
+                break;
         }
     }
 
@@ -164,6 +192,7 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
         } else {
             startRecord();
             mRecordService.setNotificationActionListener(this);
+            setRecordState(true);
         }
     }
 
@@ -182,6 +211,7 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
         } else if (requestCode == REQUEST_CODE2 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             startRecord();
             mRecordService.setNotificationActionListener(this);
+            setRecordState(true);
         } else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
@@ -208,22 +238,29 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     @Override
     public void startRecord() {
         mRecordService.startRecord();
+        setRecordState(true);
+        isRecordWasPaused = false;
     }
 
     @Override
     public void pauseRecord() {
         mRecordService.pauseRecord();
+        setRecordState(false);
+        isRecordWasPaused = true;
     }
 
     @Override
     public void resumeRecord() {
         mRecordService.resumeRecord();
+        setRecordState(true);
     }
 
     @Override
     public void stopRecord() {
         mRecordService.stopRecord();
         updateRecords();
+        setRecordState(false);
+        isRecordWasPaused = false;
     }
 
     /**
@@ -258,6 +295,8 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
             mCurrentPosition = currentIndex;
         }
 
+        setPlayerState(true);
+
         Message msg = Message.obtain(null, PLAY_RECORD, currentIndex, 0);
         try {
             mPlayerServiceMessenger.send(msg);
@@ -273,6 +312,8 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
             mCurrentPosition = currentIndex;
         }
 
+        setPlayerState(true);
+
         Message msg = Message.obtain(null, PLAY_RECORD, currentIndex, 0);
         try {
             mPlayerServiceMessenger.send(msg);
@@ -282,6 +323,9 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     }
 
     private void pausePlay() {
+
+        setPlayerState(false);
+
         Message msg = Message.obtain(null, PlayerService.PAUSE_RECORD);
         try {
             mPlayerServiceMessenger.send(msg);
@@ -291,6 +335,9 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     }
 
     private void resumePlay() {
+
+        setPlayerState(true);
+
         Message msg = Message.obtain(null, PlayerService.RESUME_RECORD);
         try {
             mPlayerServiceMessenger.send(msg);
@@ -300,6 +347,9 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     }
 
     private void stopPlay() {
+
+        setPlayerState(false);
+
         Message msg = Message.obtain(null, PlayerService.STOP_RECORD);
         try {
             mPlayerServiceMessenger.send(msg);
@@ -335,6 +385,7 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
         if (mBoundPlayer) {
             Message message = Message.obtain(null, PLAY_RECORD, position, 0);
             message.replyTo = mMainActivityMessenger;
+            setPlayerState(true);
             try {
                 mPlayerServiceMessenger.send(message);
             } catch (RemoteException e) {
@@ -351,6 +402,23 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
         mRecordAdapter.addData(filesList);
     }
 
+    private void setPlayerState(boolean isPlaying) {
+        this.isPlaying = isPlaying;
+        if (isPlaying) {
+            mPlayButton.setImageResource(R.drawable.ic_pause);
+        } else {
+            mPlayButton.setImageResource(R.drawable.ic_play);
+        }
+    }
+
+    private void setRecordState(boolean isRecording) {
+        this.isRecording = isRecording;
+        if (isRecording) {
+            mRecordButton.setImageResource(R.drawable.ic_pause);
+        } else {
+            mRecordButton.setImageResource(R.drawable.ic_mic);
+        }
+    }
 
     @Override
     protected void onDestroy() {
