@@ -14,12 +14,12 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.view.View;
-import android.widget.Button;
-import android.widget.TextView;
+import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -50,9 +50,8 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
 
     private RecyclerView mRecordRecyclerView;
     private RecordAdapter mRecordAdapter;
-    private Button mRecordButton;
-    private Button mPlayButton;
-    private TextView mCurrentRecordTextView;
+    private ImageView mRecordButton;
+    private ImageView mPlayButton;
     private List<File> mRecords = new ArrayList<>();
 
     private RecordService mRecordService;
@@ -76,12 +75,14 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
 
     private void initViews() {
         mRecordButton = findViewById(R.id.btn_record);
-        mPlayButton = findViewById(R.id.btn_play);
+        mPlayButton = findViewById(R.id.iv_play);
         mRecordRecyclerView = findViewById(R.id.record_recycler);
-        mRecordRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        mRecordRecyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.VERTICAL, false));
+        SimpleDividerItemDecoration dividerItemDecoration = new SimpleDividerItemDecoration(this, getResources().getColor(R.color.colorGray), 1);
+        mRecordRecyclerView.addItemDecoration(dividerItemDecoration);
+
         mRecordAdapter = new RecordAdapter(mRecords, this);
         mRecordRecyclerView.setAdapter(mRecordAdapter);
-        mCurrentRecordTextView = findViewById(R.id.current_record);
 
         mRecordButton.setOnClickListener(new View.OnClickListener() {
             @Override

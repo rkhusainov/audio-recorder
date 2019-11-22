@@ -3,13 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal">
-
-    <ImageView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:padding="8dp"
-        android:src="@drawable/ic_mic" />
+    android:background="@color/colorGrayDark"
+    android:orientation="horizontal"
+    android:padding="16dp">
 
     <TextView
         android:id="@+id/tv_name"
@@ -17,6 +13,7 @@
         android:layout_height="wrap_content"
         android:padding="8dp"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+        android:textColor="@color/colorWhite"
         tools:text="Name" />
 
 </LinearLayout>

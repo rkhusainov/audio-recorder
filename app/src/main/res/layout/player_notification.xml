@@ -4,7 +4,8 @@
     android:id="@+id/player_notification_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/colorGray">
+    android:background="@color/colorGray"
+    android:padding="8dp">
 
     <LinearLayout
         android:id="@+id/record_info_layout"
