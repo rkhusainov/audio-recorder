@@ -8,12 +8,10 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import static android.content.ContentValues.TAG;
 import static com.khusainov.rinat.audiorecorder.MainActivity.MESSAGE_NEXT;
 import static com.khusainov.rinat.audiorecorder.MainActivity.MESSAGE_PAUSE;
 import static com.khusainov.rinat.audiorecorder.MainActivity.MESSAGE_PREVIOUS;
@@ -27,7 +25,7 @@ public class PlayerService extends Service {
     public static final String ACTION_NEXT = "ACTION_NEXT";
     public static final String ACTION_PAUSE = "ACTION_PAUSE";
     public static final String ACTION_RESUME = "ACTION_RESUME";
-    public static final String ACTION_STOP = "ACTION_RESUME";
+    public static final String ACTION_STOP = "ACTION_STOP";
 
     public static final int RESUME_RECORD = 1;
     public static final int PAUSE_RECORD = 2;
@@ -48,7 +46,6 @@ public class PlayerService extends Service {
         mPlayerHelper = new PlayerHelper();
         mPlayerNotificationHelper = new PlayerNotificationHelper(this);
         mPlayerNotificationHelper.createNotificationChannel();
-        Log.d(TAG, "onCreate: PLAYER_SERVICE");
     }
 
     @Override
@@ -65,12 +62,15 @@ public class PlayerService extends Service {
         if (intent != null && ACTION_RESUME.equals(intent.getAction())) {
             sendMessageToActivity(MESSAGE_RESUME);
         }
+        if (intent != null && ACTION_STOP.equals(intent.getAction())) {
+            sendMessageToActivity(MESSAGE_STOP);
+        }
         return START_NOT_STICKY;
     }
 
     /**
      * Отправляем message в MainActivity
-     * */
+     */
     private void sendMessageToActivity(int what) {
         Message message = Message.obtain(null, what, 0, 0);
         try {
@@ -104,18 +104,16 @@ public class PlayerService extends Service {
                         @Override
                         public void onCompletion(MediaPlayer mp) {
                             sendMessageToActivity(MESSAGE_STOP);
-                            mPlayerNotificationHelper.updateNotification(true);
                         }
                     });
-                    Log.d(TAG, "handleMessage: PLAY_RECORD");
-                    break;
-                case RESUME_RECORD:
-                    mPlayerHelper.resumePlay();
-                    mPlayerNotificationHelper.updateNotification(false);
                     break;
                 case PAUSE_RECORD:
                     mPlayerHelper.pausePlay();
                     mPlayerNotificationHelper.updateNotification(true);
+                    break;
+                case RESUME_RECORD:
+                    mPlayerHelper.resumePlay();
+                    mPlayerNotificationHelper.updateNotification(false);
                     break;
                 case STOP_RECORD:
                     mPlayerHelper.stopPlay();

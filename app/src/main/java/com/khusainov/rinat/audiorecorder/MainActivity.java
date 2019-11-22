@@ -13,7 +13,6 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -33,6 +32,12 @@ import static com.khusainov.rinat.audiorecorder.PlayerService.PLAY_RECORD;
 
 public class MainActivity extends AppCompatActivity implements OnItemClickListener, NotificationActionListener {
 
+    private static String[] PERMISSIONS = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.RECORD_AUDIO
+    };
+
     public static final String RECORDS_FOLDER_NAME = "MyAudioRecords";
     private static final int REQUEST_CODE = 1;
     private static final int REQUEST_CODE2 = 2;
@@ -42,14 +47,6 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     public static final int MESSAGE_PAUSE = 3;
     public static final int MESSAGE_RESUME = 4;
     public static final int MESSAGE_STOP = 5;
-
-    private static final String TAG = MainActivity.class.getSimpleName();
-
-    private static String[] PERMISSIONS = {
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.RECORD_AUDIO
-    };
 
     private RecyclerView mRecordRecyclerView;
     private RecordAdapter mRecordAdapter;
@@ -71,6 +68,8 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mRecords = RecordsProvider.getInstance().getRecords();
 
         initViews();
     }
@@ -233,9 +232,15 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             mPlayerServiceMessenger = new Messenger(service);
-//            sendMessageToPlayerService();
             mBoundPlayer = true;
-            Log.d(TAG, "onServiceConnected: PLAYER_SERVICE_BIND");
+
+            Message message = Message.obtain(null, MESSAGE_START, 0, 0);
+            message.replyTo = mMainActivityMessenger;
+            try {
+                mPlayerServiceMessenger.send(message);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
         }
 
         @Override
@@ -293,7 +298,7 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
         }
     }
 
-    private void stop() {
+    private void stopPlay() {
         Message msg = Message.obtain(null, PlayerService.STOP_RECORD);
         try {
             mPlayerServiceMessenger.send(msg);
@@ -314,18 +319,20 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
         }
     }
 
+    /**
+     * Клик по элементу RecyclerView
+     */
     @Override
     public void onClick(int position) {
-        Log.d(TAG, "onClick: " + mBoundPlayer);
-        sendMessageToPlayerService();
+        sendMessageToPlayerService(position);
     }
 
     /**
      * Отправляем message сервису "PlayerService"
-     * */
-    private void sendMessageToPlayerService() {
+     */
+    private void sendMessageToPlayerService(int position) {
         if (mBoundPlayer) {
-            Message message = Message.obtain(null, MESSAGE_START, 0, 0);
+            Message message = Message.obtain(null, PLAY_RECORD, position, 0);
             message.replyTo = mMainActivityMessenger;
             try {
                 mPlayerServiceMessenger.send(message);
@@ -337,7 +344,7 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
 
     /**
      * Обновляем список записей в RecyclerView
-     * */
+     */
     void updateRecords() {
         List<File> filesList = RecordsProvider.getInstance().getRecords();
         mRecordAdapter.addData(filesList);
@@ -351,7 +358,7 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
 
     /**
      * Получаем ответ от сервиса "PlayerService"
-     * */
+     */
     class PlayerIncomingHandlerMainActivity extends Handler {
         @Override
         public void handleMessage(@NonNull Message msg) {
@@ -373,7 +380,7 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
                     break;
                 }
                 case MESSAGE_STOP: {
-                    stop();
+                    stopPlay();
                     break;
                 }
                 default:

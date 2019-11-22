@@ -9,9 +9,6 @@ public class PlayerHelper {
     private MediaPlayer mMediaPlayer;
 
     void startPlay(Context context, int recordIndex, MediaPlayer.OnCompletionListener listener) {
-        if (mMediaPlayer != null) {
-            mMediaPlayer.reset();
-        }
         mMediaPlayer = MediaPlayer.create(context, Uri.fromFile(RecordsProvider.getInstance().getRecords().get(recordIndex)));
         mMediaPlayer.start();
         mMediaPlayer.setOnCompletionListener(listener);

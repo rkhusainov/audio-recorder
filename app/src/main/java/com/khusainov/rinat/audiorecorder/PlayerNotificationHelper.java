@@ -7,14 +7,17 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.util.Log;
 import android.widget.RemoteViews;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
+import static android.content.ContentValues.TAG;
 import static com.khusainov.rinat.audiorecorder.PlayerService.ACTION_NEXT;
 import static com.khusainov.rinat.audiorecorder.PlayerService.ACTION_PAUSE;
 import static com.khusainov.rinat.audiorecorder.PlayerService.ACTION_PREVIOUS;
+import static com.khusainov.rinat.audiorecorder.PlayerService.ACTION_RESUME;
 import static com.khusainov.rinat.audiorecorder.PlayerService.ACTION_STOP;
 import static com.khusainov.rinat.audiorecorder.RecordService.NOTIFICATION_ID;
 
@@ -39,11 +42,11 @@ public class PlayerNotificationHelper {
         remoteViews.setOnClickPendingIntent(R.id.iv_prev, getPreviousPendingIntent());
         remoteViews.setOnClickPendingIntent(R.id.iv_next, getNextPendingIntent());
         remoteViews.setOnClickPendingIntent(R.id.iv_stop, getStopPendingIntent());
-        remoteViews.setOnClickPendingIntent(R.id.iv_pause, getPausePendingIntent());
-
         if (isPaused) {
+            remoteViews.setOnClickPendingIntent(R.id.iv_pause, getResumePendingIntent());
             remoteViews.setImageViewResource(R.id.iv_pause, R.drawable.ic_play);
         } else {
+            remoteViews.setOnClickPendingIntent(R.id.iv_pause, getPausePendingIntent());
             remoteViews.setImageViewResource(R.id.iv_pause, R.drawable.ic_pause);
         }
 
@@ -89,6 +92,13 @@ public class PlayerNotificationHelper {
         Intent pauseIntent = new Intent(mContext, PlayerService.class);
         pauseIntent.setAction(ACTION_PAUSE);
         PendingIntent pendingIntent = PendingIntent.getService(mContext, 0, pauseIntent, 0);
+        return pendingIntent;
+    }
+
+    private PendingIntent getResumePendingIntent() {
+        Intent resumeIntent = new Intent(mContext, PlayerService.class);
+        resumeIntent.setAction(ACTION_RESUME);
+        PendingIntent pendingIntent = PendingIntent.getService(mContext, 0, resumeIntent, 0);
         return pendingIntent;
     }
 
