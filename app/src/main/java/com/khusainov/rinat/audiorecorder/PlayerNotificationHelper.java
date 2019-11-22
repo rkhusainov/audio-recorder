@@ -12,17 +12,18 @@ import android.widget.RemoteViews;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
+import static com.khusainov.rinat.audiorecorder.PlayerService.ACTION_NEXT;
+import static com.khusainov.rinat.audiorecorder.PlayerService.ACTION_PAUSE;
+import static com.khusainov.rinat.audiorecorder.PlayerService.ACTION_PREVIOUS;
+import static com.khusainov.rinat.audiorecorder.PlayerService.ACTION_STOP;
 import static com.khusainov.rinat.audiorecorder.RecordService.NOTIFICATION_ID;
-import static com.khusainov.rinat.audiorecorder.RecordService.PAUSE_ACTION;
-import static com.khusainov.rinat.audiorecorder.RecordService.STOP_ACTION;
 
-public class NotificationHelper {
-
-    public static final String CHANNEL_ID = "CHANNEL_1";
+public class PlayerNotificationHelper {
+    public static final String CHANNEL_ID = "PLAYER_CHANNEL";
 
     private Context mContext;
 
-    public NotificationHelper(Context context) {
+    public PlayerNotificationHelper(Context context) {
         mContext = context;
     }
 
@@ -32,9 +33,11 @@ public class NotificationHelper {
      **/
     public Notification createNotification(boolean isPaused) {
 
-        RemoteViews remoteViews = new RemoteViews(mContext.getPackageName(), R.layout.record_notification);
+        RemoteViews remoteViews = new RemoteViews(mContext.getPackageName(), R.layout.player_notification);
         remoteViews.setTextViewText(R.id.tv_name, "Record_1");
-        remoteViews.setOnClickPendingIntent(R.id.root, getOpenActivityPendingIntent());
+        remoteViews.setOnClickPendingIntent(R.id.player_notification_root, getOpenActivityPendingIntent());
+        remoteViews.setOnClickPendingIntent(R.id.iv_prev, getPreviousPendingIntent());
+        remoteViews.setOnClickPendingIntent(R.id.iv_next, getNextPendingIntent());
         remoteViews.setOnClickPendingIntent(R.id.iv_stop, getStopPendingIntent());
         remoteViews.setOnClickPendingIntent(R.id.iv_pause, getPausePendingIntent());
 
@@ -61,16 +64,30 @@ public class NotificationHelper {
         return pendingIntent;
     }
 
+    private PendingIntent getPreviousPendingIntent() {
+        Intent previousIntent = new Intent(mContext, PlayerService.class);
+        previousIntent.setAction(ACTION_PREVIOUS);
+        PendingIntent pendingIntent = PendingIntent.getService(mContext, 0, previousIntent, 0);
+        return pendingIntent;
+    }
+
+    private PendingIntent getNextPendingIntent() {
+        Intent nextIntent = new Intent(mContext, PlayerService.class);
+        nextIntent.setAction(ACTION_NEXT);
+        PendingIntent pendingIntent = PendingIntent.getService(mContext, 0, nextIntent, 0);
+        return pendingIntent;
+    }
+
     private PendingIntent getStopPendingIntent() {
-        Intent stopIntent = new Intent(mContext, RecordService.class);
-        stopIntent.setAction(STOP_ACTION);
+        Intent stopIntent = new Intent(mContext, PlayerService.class);
+        stopIntent.setAction(ACTION_STOP);
         PendingIntent pendingIntent = PendingIntent.getService(mContext, 0, stopIntent, 0);
         return pendingIntent;
     }
 
     private PendingIntent getPausePendingIntent() {
-        Intent pauseIntent = new Intent(mContext, RecordService.class);
-        pauseIntent.setAction(PAUSE_ACTION);
+        Intent pauseIntent = new Intent(mContext, PlayerService.class);
+        pauseIntent.setAction(ACTION_PAUSE);
         PendingIntent pendingIntent = PendingIntent.getService(mContext, 0, pauseIntent, 0);
         return pendingIntent;
     }
@@ -80,7 +97,7 @@ public class NotificationHelper {
      */
     public void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel notificationChannel = new NotificationChannel(CHANNEL_ID, "Channel Name",
+            NotificationChannel notificationChannel = new NotificationChannel(CHANNEL_ID, "Player Channel",
                     NotificationManager.IMPORTANCE_DEFAULT);
             NotificationManager notificationManager = mContext.getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(notificationChannel);

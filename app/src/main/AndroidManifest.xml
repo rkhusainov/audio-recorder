@@ -25,7 +25,9 @@
         </activity>
 
         <service android:name=".RecordService" />
-
+        <service
+            android:name=".PlayerService"
+            android:process=":externalProcess" />
     </application>
 
 </manifest>

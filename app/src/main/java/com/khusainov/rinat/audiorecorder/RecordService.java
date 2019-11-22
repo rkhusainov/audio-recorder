@@ -13,12 +13,11 @@ public class RecordService extends Service {
     public static final int NOTIFICATION_ID = 1;
     public static final String STOP_ACTION = "STOP_ACTION";
     public static final String PAUSE_ACTION = "PAUSE_ACTION";
-    private static final String TAG = RecordService.class.getSimpleName();
 
     private final IBinder binder = new LocalBinder();
     private RecordHelper mRecordHelper;
     private NotificationActionListener mActionListener;
-    private NotificationHelper mNotificationHelper;
+    private RecorderNotificationHelper mRecorderNotificationHelper;
 
     private boolean isPaused = false;
 
@@ -26,17 +25,11 @@ public class RecordService extends Service {
         mActionListener = listener;
     }
 
-    @Nullable
-    @Override
-    public IBinder onBind(Intent intent) {
-        return binder;
-    }
-
     @Override
     public void onCreate() {
         super.onCreate();
-        mNotificationHelper = new NotificationHelper(this);
-        mNotificationHelper.createNotificationChannel();
+        mRecorderNotificationHelper = new RecorderNotificationHelper(this);
+        mRecorderNotificationHelper.createNotificationChannel();
     }
 
     /**
@@ -64,22 +57,28 @@ public class RecordService extends Service {
     public void startRecord() {
         mRecordHelper = new RecordHelper();
         mRecordHelper.startRecord();
-        startForeground(NOTIFICATION_ID, mNotificationHelper.createNotification(false));
+        startForeground(NOTIFICATION_ID, mRecorderNotificationHelper.createNotification(false));
     }
 
     public void pauseRecord() {
         mRecordHelper.pauseRecord();
-        mNotificationHelper.updateNotification(true);
+        mRecorderNotificationHelper.updateNotification(true);
     }
 
     public void resumeRecord() {
         mRecordHelper.resumeRecord();
-        mNotificationHelper.updateNotification(false);
+        mRecorderNotificationHelper.updateNotification(false);
     }
 
     public void stopRecord() {
         mRecordHelper.stopRecord();
         stopForeground(true);
+    }
+
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return binder;
     }
 
     class LocalBinder extends Binder {

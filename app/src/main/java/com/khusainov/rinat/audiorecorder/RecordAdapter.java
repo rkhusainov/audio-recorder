@@ -60,7 +60,7 @@ public class RecordAdapter extends RecyclerView.Adapter<RecordAdapter.RecorderHo
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    mOnItemClickListener.onClick(file);
+                    mOnItemClickListener.onClick(getAdapterPosition());
                 }
             });
         }

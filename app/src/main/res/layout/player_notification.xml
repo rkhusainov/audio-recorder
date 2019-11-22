@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/recorder_notification_root"
+    android:id="@+id/player_notification_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@color/colorGray">
@@ -18,13 +18,14 @@
             android:id="@+id/iv_icon"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/ic_mic" />
+            android:src="@drawable/ic_headphones" />
 
         <TextView
             android:id="@+id/tv_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="16dp"
+            android:layout_marginStart="8dp"
             android:textAppearance="@style/TextAppearance.Compat.Notification.Title"
             tools:text="Record 1"
             android:textColor="@color/colorWhite"/>
@@ -56,11 +57,27 @@
             android:background="@drawable/button_back"/>
 
         <ImageView
+            android:id="@+id/iv_prev"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:src="@drawable/ic_skip_previous"
+            android:background="@drawable/button_back"/>
+
+        <ImageView
             android:id="@+id/iv_pause"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:padding="8dp"
             android:src="@drawable/ic_pause"
+            android:background="@drawable/button_back"/>
+
+        <ImageView
+            android:id="@+id/iv_next"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:src="@drawable/ic_skip_next"
             android:background="@drawable/button_back"/>
 
     </LinearLayout>

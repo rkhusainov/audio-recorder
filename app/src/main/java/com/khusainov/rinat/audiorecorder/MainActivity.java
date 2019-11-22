@@ -6,16 +6,17 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
-import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -27,13 +28,21 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.khusainov.rinat.audiorecorder.PlayerService.MESSAGE_START;
+import static com.khusainov.rinat.audiorecorder.PlayerService.PLAY_RECORD;
+
 public class MainActivity extends AppCompatActivity implements OnItemClickListener, NotificationActionListener {
 
     public static final String RECORDS_FOLDER_NAME = "MyAudioRecords";
     private static final int REQUEST_CODE = 1;
-    public static final String STOP_RECORD = "STOP_RECORD";
-    public static final String PAUSE_RECORD = "PAUSE_RECORD";
-    public static final String RESUME_RECORD = "RESUME_RECORD";
+    private static final int REQUEST_CODE2 = 2;
+
+    public static final int MESSAGE_PREVIOUS = 1;
+    public static final int MESSAGE_NEXT = 2;
+    public static final int MESSAGE_PAUSE = 3;
+    public static final int MESSAGE_RESUME = 4;
+    public static final int MESSAGE_STOP = 5;
+
     private static final String TAG = MainActivity.class.getSimpleName();
 
     private static String[] PERMISSIONS = {
@@ -49,19 +58,19 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     private TextView mCurrentRecordTextView;
     private List<File> mRecords = new ArrayList<>();
 
-    private File mDir;
-    private File mFile;
-
-    private MediaPlayer mMediaPlayer;
-
     private RecordService mRecordService;
-    private boolean mBound = false;
+    private boolean mBoundRecorder = false;
+    private boolean mBoundPlayer = false;
+
+    private Messenger mPlayerServiceMessenger = null;
+    private Messenger mMainActivityMessenger = new Messenger(new PlayerIncomingHandlerMainActivity());
+
+    private int mCurrentPosition;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        getRecordsFromDir();
 
         initViews();
     }
@@ -85,25 +94,46 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
         mPlayButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                playRecord();
+
             }
         });
+
+        // Проверяем разрешения при открытии приложения, нужно для чтения записей
+        if (!hasPermissions(this, PERMISSIONS)) {
+            ActivityCompat.requestPermissions(MainActivity.this, PERMISSIONS, REQUEST_CODE);
+        } else {
+            createFolder();
+            updateRecords();
+        }
     }
 
+    /**
+     * В методе onStart() привязываем сервисы
+     */
     @Override
     protected void onStart() {
         super.onStart();
-        Intent intent = new Intent(this, RecordService.class);
-        startService(intent);
-        bindService(intent, mRecorderConnection, Context.BIND_AUTO_CREATE);
+        Intent recorderIntent = new Intent(this, RecordService.class);
+        bindService(recorderIntent, mRecorderConnection, Context.BIND_AUTO_CREATE);
+
+        Intent playerIntent = new Intent(this, PlayerService.class);
+        bindService(playerIntent, mPlayerConnection, Context.BIND_AUTO_CREATE);
     }
 
+    /**
+     * В методе onStop() отвязываем сервисы
+     */
     @Override
     protected void onStop() {
         super.onStop();
-        if (mBound) {
+        if (mBoundRecorder) {
             unbindService(mRecorderConnection);
-            mBound = false;
+            mBoundRecorder = false;
+        }
+
+        if (mBoundPlayer) {
+            unbindService(mPlayerConnection);
+            mBoundPlayer = false;
         }
     }
 
@@ -126,15 +156,14 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
 
     /**
      * Если нет разрешений, запрашиваем
-     * Если есть, запускаем сервис и запись
+     * Если есть, запускаем сервис
      */
     private void startRecordingService() {
         if (!hasPermissions(this, PERMISSIONS)) {
-            ActivityCompat.requestPermissions(MainActivity.this, PERMISSIONS, REQUEST_CODE);
+            ActivityCompat.requestPermissions(MainActivity.this, PERMISSIONS, REQUEST_CODE2);
         } else {
-            mRecordService.setNotificationActionListener(this);
-            createFolder();
             startRecord();
+            mRecordService.setNotificationActionListener(this);
         }
     }
 
@@ -150,24 +179,29 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (requestCode == REQUEST_CODE && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             createFolder();
+        } else if (requestCode == REQUEST_CODE2 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            startRecord();
+            mRecordService.setNotificationActionListener(this);
         } else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
 
+    /**
+     * Recorder ServiceConnection
+     */
     private ServiceConnection mRecorderConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
 
             RecordService.LocalBinder binder = (RecordService.LocalBinder) service;
             mRecordService = binder.getRecorderService();
-//            mRecordService = ((RecordService.LocalBinder) service).getRecorderService();
-            mBound = true;
+            mBoundRecorder = true;
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            mBound = false;
+            mBoundRecorder = false;
         }
     };
 
@@ -189,15 +223,82 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
     @Override
     public void stopRecord() {
         mRecordService.stopRecord();
+        updateRecords();
     }
 
-    private void getRecordsFromDir() {
-        mDir = new File(Environment.getExternalStorageDirectory()
-                + File.separator
-                + RECORDS_FOLDER_NAME
-                + File.separator);
-        if (mDir.exists()) {
-            mRecords = getRecordNames(mDir);
+    /**
+     * Player ServiceConnection
+     */
+    private ServiceConnection mPlayerConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            mPlayerServiceMessenger = new Messenger(service);
+//            sendMessageToPlayerService();
+            mBoundPlayer = true;
+            Log.d(TAG, "onServiceConnected: PLAYER_SERVICE_BIND");
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mPlayerServiceMessenger = null;
+            mBoundPlayer = false;
+        }
+    };
+
+    private void prevPlay() {
+        int currentIndex = 0;
+        if (mCurrentPosition > 0) {
+            currentIndex = mCurrentPosition - 1;
+            mCurrentPosition = currentIndex;
+        }
+
+        Message msg = Message.obtain(null, PLAY_RECORD, currentIndex, 0);
+        try {
+            mPlayerServiceMessenger.send(msg);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void nextPlay() {
+        int currentIndex = RecordsProvider.getInstance().getRecords().size() - 1;
+        if (mCurrentPosition < currentIndex) {
+            currentIndex = mCurrentPosition + 1;
+            mCurrentPosition = currentIndex;
+        }
+
+        Message msg = Message.obtain(null, PLAY_RECORD, currentIndex, 0);
+        try {
+            mPlayerServiceMessenger.send(msg);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void pausePlay() {
+        Message msg = Message.obtain(null, PlayerService.PAUSE_RECORD);
+        try {
+            mPlayerServiceMessenger.send(msg);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void resumePlay() {
+        Message msg = Message.obtain(null, PlayerService.RESUME_RECORD);
+        try {
+            mPlayerServiceMessenger.send(msg);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void stop() {
+        Message msg = Message.obtain(null, PlayerService.STOP_RECORD);
+        try {
+            mPlayerServiceMessenger.send(msg);
+        } catch (RemoteException e) {
+            e.printStackTrace();
         }
     }
 
@@ -213,72 +314,71 @@ public class MainActivity extends AppCompatActivity implements OnItemClickListen
         }
     }
 
-    /**
-     * Проигрываем запись
-     */
-    private void playRecord() {
-        if (!mRecords.isEmpty()) {
-            if (mFile == null) {
-                mFile = mRecords.get(0);
-                setCurrentRecordName();
-            }
-            createPlayer();
-        } else {
-            Toast.makeText(this, getResources().getString(R.string.no_records), Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void createPlayer() {
-        if (mMediaPlayer != null) {
-            mMediaPlayer.reset();
-        }
-        mMediaPlayer = MediaPlayer.create(this, Uri.parse(Environment.getExternalStorageDirectory()
-                + File.separator
-                + RECORDS_FOLDER_NAME
-                + File.separator
-                + mFile.getName()));
-        mMediaPlayer.start();
-
-        mCurrentRecordTextView.setText(format(R.string.playing_record, mFile.getName()));
-        mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mediaPlayer) {
-                mCurrentRecordTextView.setText(getResources().getString(R.string.play_finish));
-            }
-        });
-    }
-
-    private String format(int res, String text) {
-        return String.format((getString(res)), text);
-    }
-
-    private List<File> getRecordNames(File dir) {
-        List<File> files = new ArrayList<>();
-        for (File file : dir.listFiles()) {
-            files.add(file);
-        }
-        return files;
-    }
-
-    private void updateRecords() {
-        mRecords = getRecordNames(mDir);
-        mRecordAdapter.addData(mRecords);
-    }
-
     @Override
-    public void onClick(File file) {
-        mFile = file;
-        setCurrentRecordName();
+    public void onClick(int position) {
+        Log.d(TAG, "onClick: " + mBoundPlayer);
+        sendMessageToPlayerService();
     }
 
-    private void setCurrentRecordName() {
-        if (mFile != null) {
-            mCurrentRecordTextView.setText(mFile.getName());
+    /**
+     * Отправляем message сервису "PlayerService"
+     * */
+    private void sendMessageToPlayerService() {
+        if (mBoundPlayer) {
+            Message message = Message.obtain(null, MESSAGE_START, 0, 0);
+            message.replyTo = mMainActivityMessenger;
+            try {
+                mPlayerServiceMessenger.send(message);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
         }
     }
+
+    /**
+     * Обновляем список записей в RecyclerView
+     * */
+    void updateRecords() {
+        List<File> filesList = RecordsProvider.getInstance().getRecords();
+        mRecordAdapter.addData(filesList);
+    }
+
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+    }
+
+    /**
+     * Получаем ответ от сервиса "PlayerService"
+     * */
+    class PlayerIncomingHandlerMainActivity extends Handler {
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            switch (msg.what) {
+                case MESSAGE_NEXT: {
+                    nextPlay();
+                    break;
+                }
+                case MESSAGE_PREVIOUS: {
+                    prevPlay();
+                    break;
+                }
+                case MESSAGE_PAUSE: {
+                    pausePlay();
+                    break;
+                }
+                case MESSAGE_RESUME: {
+                    resumePlay();
+                    break;
+                }
+                case MESSAGE_STOP: {
+                    stop();
+                    break;
+                }
+                default:
+                    super.handleMessage(msg);
+            }
+        }
     }
 }
