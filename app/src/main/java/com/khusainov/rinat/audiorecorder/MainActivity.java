@@ -125,10 +125,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 break;
             case R.id.iv_prev:
-                prevPlay();
+                if (!mRecords.isEmpty()) {
+                    prevPlay();
+                }
                 break;
             case R.id.iv_next:
-                nextPlay();
+                if (!mRecords.isEmpty()) {
+                    nextPlay();
+                }
                 break;
         }
     }
