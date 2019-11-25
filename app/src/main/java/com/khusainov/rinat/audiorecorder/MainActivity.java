@@ -52,6 +52,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private ImageView mPlayButton;
     private ImageView mPlayPrevButton;
     private ImageView mPlayNextButton;
+    private ImageView mDoneButton;
+    private ImageView mCancelButton;
 
     private RecyclerView mRecordRecyclerView;
     private RecordAdapter mRecordAdapter;
@@ -66,6 +68,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private int mCurrentPosition;
     private boolean isPlaying = false;
+    private boolean isPausing = false;
     private boolean isRecording = false;
     private boolean isRecordWasPaused = false;
 
@@ -90,10 +93,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mPlayButton = findViewById(R.id.iv_play);
         mPlayPrevButton = findViewById(R.id.iv_prev);
         mPlayNextButton = findViewById(R.id.iv_next);
+        mDoneButton = findViewById(R.id.iv_done);
+        mCancelButton = findViewById(R.id.iv_cancel);
         mRecordButton.setOnClickListener(this);
         mPlayButton.setOnClickListener(this);
         mPlayPrevButton.setOnClickListener(this);
         mPlayNextButton.setOnClickListener(this);
+        mDoneButton.setOnClickListener(this);
+        mCancelButton.setOnClickListener(this);
 
         mRecordRecyclerView = findViewById(R.id.record_recycler);
         mRecordRecyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.VERTICAL, false));
@@ -116,10 +123,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 } else {
                     pauseRecord();
                 }
+                mPlayButton.setEnabled(false);
+                mPlayPrevButton.setEnabled(false);
+                mPlayNextButton.setEnabled(false);
                 break;
             case R.id.iv_play:
                 if (isPlaying) {
                     pausePlay();
+                    isPausing = true;
+                } else if (isPausing) {
+                    resumePlay();
                 } else {
                     sendMessageToPlayerService(mCurrentPosition);
                 }
@@ -133,6 +146,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if (!mRecords.isEmpty()) {
                     nextPlay();
                 }
+                break;
+            case R.id.iv_done:
+                stopRecord();
+                break;
+            case R.id.iv_cancel:
+                // TODO: Cancel recording
                 break;
         }
     }
@@ -242,6 +261,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mRecordService.startRecord();
         setRecordState(true);
         isRecordWasPaused = false;
+        mDoneButton.setVisibility(View.VISIBLE);
     }
 
     @Override
@@ -263,6 +283,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         updateRecords();
         setRecordState(false);
         isRecordWasPaused = false;
+        mDoneButton.setVisibility(View.INVISIBLE);
+        mPlayButton.setEnabled(true);
+        mPlayPrevButton.setEnabled(false);
+        mPlayNextButton.setEnabled(false);
     }
 
     /**
@@ -298,6 +322,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         setPlayerState(true);
+        mRecordButton.setEnabled(false);
 
         Message msg = Message.obtain(null, PLAY_RECORD, currentIndex, 0);
         try {
@@ -315,6 +340,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         setPlayerState(true);
+        mRecordButton.setEnabled(false);
 
         Message msg = Message.obtain(null, PLAY_RECORD, currentIndex, 0);
         try {
@@ -351,6 +377,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void stopPlay() {
 
         setPlayerState(false);
+        mRecordButton.setEnabled(true);
 
         Message msg = Message.obtain(null, PlayerService.STOP_RECORD);
         try {
@@ -388,6 +415,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Message message = Message.obtain(null, PLAY_RECORD, position, 0);
             message.replyTo = mMainActivityMessenger;
             setPlayerState(true);
+            mRecordButton.setEnabled(false);
             try {
                 mPlayerServiceMessenger.send(message);
             } catch (RemoteException e) {
