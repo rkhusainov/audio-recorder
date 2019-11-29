@@ -1,4 +1,4 @@
-package com.khusainov.rinat.audiorecorder;
+package com.khusainov.rinat.audiorecorder.player;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -7,19 +7,20 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
-import android.util.Log;
 import android.widget.RemoteViews;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
-import static android.content.ContentValues.TAG;
-import static com.khusainov.rinat.audiorecorder.PlayerService.ACTION_NEXT;
-import static com.khusainov.rinat.audiorecorder.PlayerService.ACTION_PAUSE;
-import static com.khusainov.rinat.audiorecorder.PlayerService.ACTION_PREVIOUS;
-import static com.khusainov.rinat.audiorecorder.PlayerService.ACTION_RESUME;
-import static com.khusainov.rinat.audiorecorder.PlayerService.ACTION_STOP;
-import static com.khusainov.rinat.audiorecorder.RecordService.NOTIFICATION_ID;
+import com.khusainov.rinat.audiorecorder.R;
+import com.khusainov.rinat.audiorecorder.ui.MainActivity;
+
+import static com.khusainov.rinat.audiorecorder.player.PlayerService.ACTION_NEXT;
+import static com.khusainov.rinat.audiorecorder.player.PlayerService.ACTION_PAUSE;
+import static com.khusainov.rinat.audiorecorder.player.PlayerService.ACTION_PREVIOUS;
+import static com.khusainov.rinat.audiorecorder.player.PlayerService.ACTION_RESUME;
+import static com.khusainov.rinat.audiorecorder.player.PlayerService.ACTION_STOP;
+import static com.khusainov.rinat.audiorecorder.recorder.RecordService.NOTIFICATION_ID;
 
 public class PlayerNotificationHelper {
     public static final String CHANNEL_ID = "PLAYER_CHANNEL";

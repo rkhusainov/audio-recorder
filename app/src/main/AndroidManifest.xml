@@ -16,7 +16,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".MainActivity">
+        <activity android:name=".ui.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -24,9 +24,9 @@
             </intent-filter>
         </activity>
 
-        <service android:name=".RecordService" />
+        <service android:name=".recorder.RecordService" />
         <service
-            android:name=".PlayerService"
+            android:name=".player.PlayerService"
             android:process=":externalProcess" />
     </application>
 

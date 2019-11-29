@@ -1,4 +1,4 @@
-package com.khusainov.rinat.audiorecorder;
+package com.khusainov.rinat.audiorecorder.data;
 
 import android.os.Environment;
 
@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.khusainov.rinat.audiorecorder.MainActivity.RECORDS_FOLDER_NAME;
+import static com.khusainov.rinat.audiorecorder.ui.MainActivity.RECORDS_FOLDER_NAME;
 
 public class RecordsProvider {
 
@@ -20,7 +20,7 @@ public class RecordsProvider {
         return instance;
     }
 
-    List<File> getRecords() {
+    public List<File> getRecords() {
         File folder = new File(Environment.getExternalStorageDirectory().getAbsolutePath()
                 + File.separator
                 + RECORDS_FOLDER_NAME);

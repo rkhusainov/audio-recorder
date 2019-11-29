@@ -1,4 +1,4 @@
-package com.khusainov.rinat.audiorecorder;
+package com.khusainov.rinat.audiorecorder.recorder;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -12,9 +12,12 @@ import android.widget.RemoteViews;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
-import static com.khusainov.rinat.audiorecorder.RecordService.NOTIFICATION_ID;
-import static com.khusainov.rinat.audiorecorder.RecordService.PAUSE_ACTION;
-import static com.khusainov.rinat.audiorecorder.RecordService.STOP_ACTION;
+import com.khusainov.rinat.audiorecorder.R;
+import com.khusainov.rinat.audiorecorder.ui.MainActivity;
+
+import static com.khusainov.rinat.audiorecorder.recorder.RecordService.NOTIFICATION_ID;
+import static com.khusainov.rinat.audiorecorder.recorder.RecordService.PAUSE_ACTION;
+import static com.khusainov.rinat.audiorecorder.recorder.RecordService.STOP_ACTION;
 
 public class RecorderNotificationHelper {
 

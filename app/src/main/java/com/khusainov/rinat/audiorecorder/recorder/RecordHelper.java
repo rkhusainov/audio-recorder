@@ -1,8 +1,10 @@
-package com.khusainov.rinat.audiorecorder;
+package com.khusainov.rinat.audiorecorder.recorder;
 
 import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.Environment;
+
+import com.khusainov.rinat.audiorecorder.ui.MainActivity;
 
 import java.io.File;
 import java.io.IOException;

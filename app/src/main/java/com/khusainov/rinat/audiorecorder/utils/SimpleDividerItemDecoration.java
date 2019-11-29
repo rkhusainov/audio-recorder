@@ -1,4 +1,4 @@
-package com.khusainov.rinat.audiorecorder;
+package com.khusainov.rinat.audiorecorder.utils;
 
 import android.content.Context;
 import android.graphics.Canvas;

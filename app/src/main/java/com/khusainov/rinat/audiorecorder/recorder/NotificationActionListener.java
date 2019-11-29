@@ -1,4 +1,4 @@
-package com.khusainov.rinat.audiorecorder;
+package com.khusainov.rinat.audiorecorder.recorder;
 
 public interface NotificationActionListener {
     void startRecord();

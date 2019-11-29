@@ -1,4 +1,4 @@
-package com.khusainov.rinat.audiorecorder;
+package com.khusainov.rinat.audiorecorder.adapters;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -7,6 +7,9 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.khusainov.rinat.audiorecorder.ui.OnItemClickListener;
+import com.khusainov.rinat.audiorecorder.R;
 
 import java.io.File;
 import java.util.List;

@@ -1,4 +1,4 @@
-package com.khusainov.rinat.audiorecorder;
+package com.khusainov.rinat.audiorecorder.recorder;
 
 import android.app.Service;
 import android.content.Intent;
@@ -81,8 +81,8 @@ public class RecordService extends Service {
         return binder;
     }
 
-    class LocalBinder extends Binder {
-        RecordService getRecorderService() {
+    public class LocalBinder extends Binder {
+        public RecordService getRecorderService() {
             return RecordService.this;
         }
     }

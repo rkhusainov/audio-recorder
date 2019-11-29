@@ -1,4 +1,4 @@
-package com.khusainov.rinat.audiorecorder;
+package com.khusainov.rinat.audiorecorder.player;
 
 import android.app.Service;
 import android.content.Intent;
@@ -12,11 +12,11 @@ import android.os.RemoteException;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import static com.khusainov.rinat.audiorecorder.MainActivity.MESSAGE_NEXT;
-import static com.khusainov.rinat.audiorecorder.MainActivity.MESSAGE_PAUSE;
-import static com.khusainov.rinat.audiorecorder.MainActivity.MESSAGE_PREVIOUS;
-import static com.khusainov.rinat.audiorecorder.MainActivity.MESSAGE_RESUME;
-import static com.khusainov.rinat.audiorecorder.MainActivity.MESSAGE_STOP;
+import static com.khusainov.rinat.audiorecorder.ui.MainActivity.MESSAGE_NEXT;
+import static com.khusainov.rinat.audiorecorder.ui.MainActivity.MESSAGE_PAUSE;
+import static com.khusainov.rinat.audiorecorder.ui.MainActivity.MESSAGE_PREVIOUS;
+import static com.khusainov.rinat.audiorecorder.ui.MainActivity.MESSAGE_RESUME;
+import static com.khusainov.rinat.audiorecorder.ui.MainActivity.MESSAGE_STOP;
 
 public class PlayerService extends Service {
 

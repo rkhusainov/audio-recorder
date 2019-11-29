@@ -1,8 +1,10 @@
-package com.khusainov.rinat.audiorecorder;
+package com.khusainov.rinat.audiorecorder.player;
 
 import android.content.Context;
 import android.media.MediaPlayer;
 import android.net.Uri;
+
+import com.khusainov.rinat.audiorecorder.data.RecordsProvider;
 
 public class PlayerHelper {
 

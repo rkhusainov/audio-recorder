@@ -1,4 +1,4 @@
-package com.khusainov.rinat.audiorecorder;
+package com.khusainov.rinat.audiorecorder.ui;
 
 import android.Manifest;
 import android.content.ComponentName;
@@ -13,7 +13,6 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
-import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 
@@ -23,12 +22,20 @@ import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.khusainov.rinat.audiorecorder.recorder.NotificationActionListener;
+import com.khusainov.rinat.audiorecorder.player.PlayerService;
+import com.khusainov.rinat.audiorecorder.R;
+import com.khusainov.rinat.audiorecorder.adapters.RecordAdapter;
+import com.khusainov.rinat.audiorecorder.recorder.RecordService;
+import com.khusainov.rinat.audiorecorder.data.RecordsProvider;
+import com.khusainov.rinat.audiorecorder.utils.SimpleDividerItemDecoration;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.khusainov.rinat.audiorecorder.PlayerService.MESSAGE_START;
-import static com.khusainov.rinat.audiorecorder.PlayerService.PLAY_RECORD;
+import static com.khusainov.rinat.audiorecorder.player.PlayerService.MESSAGE_START;
+import static com.khusainov.rinat.audiorecorder.player.PlayerService.PLAY_RECORD;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, OnItemClickListener, NotificationActionListener {
 
@@ -241,7 +248,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     /**
      * Recorder ServiceConnection
      */
-    private ServiceConnection mRecorderConnection = new ServiceConnection() {
+    public ServiceConnection mRecorderConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
 
