@@ -11,16 +11,7 @@ import static com.khusainov.rinat.audiorecorder.ui.MainActivity.RECORDS_FOLDER_N
 
 public class RecordsProvider {
 
-    private static RecordsProvider instance;
-
-    public static RecordsProvider getInstance() {
-        if (instance == null) {
-            instance = new RecordsProvider();
-        }
-        return instance;
-    }
-
-    public List<File> getRecords() {
+    public static List<File> getRecords() {
         File folder = new File(Environment.getExternalStorageDirectory().getAbsolutePath()
                 + File.separator
                 + RECORDS_FOLDER_NAME);

@@ -340,7 +340,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void nextPlay() {
-        int currentIndex = RecordsProvider.getInstance().getRecords().size() - 1;
+        int currentIndex = RecordsProvider.getRecords().size() - 1;
         if (mCurrentPosition < currentIndex) {
             currentIndex = mCurrentPosition + 1;
             mCurrentPosition = currentIndex;
@@ -435,7 +435,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * Обновляем список записей в RecyclerView
      */
     void updateRecords() {
-        List<File> filesList = RecordsProvider.getInstance().getRecords();
+        List<File> filesList = RecordsProvider.getRecords();
         mRecordAdapter.addData(filesList);
     }
 
